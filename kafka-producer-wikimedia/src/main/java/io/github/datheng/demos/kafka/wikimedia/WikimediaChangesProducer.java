@@ -1,17 +1,14 @@
 package io.github.datheng.demos.kafka.wikimedia;
 
 import com.launchdarkly.eventsource.ConnectStrategy;
-import com.launchdarkly.eventsource.background.BackgroundEventHandler;
 import com.launchdarkly.eventsource.EventSource;
+import com.launchdarkly.eventsource.background.BackgroundEventHandler;
 import com.launchdarkly.eventsource.background.BackgroundEventSource;
-import okhttp3.Headers;
 import okhttp3.HttpUrl;
-import okhttp3.OkHttpClient;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 
-import java.net.URI;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
@@ -27,6 +24,11 @@ public class WikimediaChangesProducer {
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServer);
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+
+        // set some high performance producer configs
+        props.put(ProducerConfig.LINGER_MS_CONFIG, "20");
+        props.put(ProducerConfig.BATCH_SIZE_CONFIG, Integer.toString(32 * 1024));
+        props.put(ProducerConfig.COMPRESSION_TYPE_CONFIG,"snappy");
 
         // create the Producer
         KafkaProducer<String, String> producer = new KafkaProducer<String, String>(props);
