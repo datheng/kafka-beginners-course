@@ -12,6 +12,8 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.opensearch.action.bulk.BulkRequest;
+import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.RequestOptions;
@@ -108,6 +110,8 @@ public class OpenSearchConsumer {
                 ConsumerRecords<String, String> consumerRecords = kafkaConsumer.poll(Duration.ofMillis(3000));
                 int n = consumerRecords.count();
                 log.info("Consumer {} records. ", n);
+
+                BulkRequest bulkRequest = new BulkRequest();
                 for (ConsumerRecord<String, String> consumerRecord : consumerRecords) {
 
                     // strategy 1
@@ -125,12 +129,17 @@ public class OpenSearchConsumer {
                                 .source(consumerRecord.value(), XContentType.JSON)
                                 .id(id);
 
-                        IndexResponse response = openSearchClient.index(indexRequest, RequestOptions.DEFAULT);
+                        bulkRequest.add(indexRequest);
+//                        IndexResponse response = openSearchClient.index(indexRequest, RequestOptions.DEFAULT);
 
-                        log.info("Inserted 1 document into OpenSearch ID: {}", response.getId());
+//                        log.info("Inserted 1 document into OpenSearch ID: {}", response.getId());
                     }catch (Exception e){
 
                     }
+                }
+                if(bulkRequest.numberOfActions()>0) {
+                    BulkResponse bulkResponse = openSearchClient.bulk(bulkRequest, RequestOptions.DEFAULT);
+                    log.info("Inserted {} document into OpenSearch", bulkResponse.getItems().length);
                 }
             }
         } catch (IOException e) {
