@@ -1,5 +1,6 @@
 package io.github.datheng.demos.kafka.opensearch;
 
+import com.google.gson.JsonParser;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -109,10 +110,20 @@ public class OpenSearchConsumer {
                 log.info("Consumer {} records. ", n);
                 for (ConsumerRecord<String, String> consumerRecord : consumerRecords) {
 
+                    // strategy 1
+                    // define an ID using Kafka Record coordinate
+                    // String id = consumerRecord.topic() + "_" + consumerRecord.partition() + "_" + consumerRecord.offset();
+
                     // send the record into OpenSearch
                     try {
+
+                        // strategy 2
+                        // get id from the record value
+                        String id = getIdFromRecordValue(consumerRecord.value());
+
                         IndexRequest indexRequest = new IndexRequest("wikimedia")
-                                .source(consumerRecord.value(), XContentType.JSON);
+                                .source(consumerRecord.value(), XContentType.JSON)
+                                .id(id);
 
                         IndexResponse response = openSearchClient.index(indexRequest, RequestOptions.DEFAULT);
 
@@ -129,5 +140,14 @@ public class OpenSearchConsumer {
 
 
         // close things
+    }
+
+    private static String getIdFromRecordValue(String json) {
+        // gson library
+        return JsonParser.parseString(json).getAsJsonObject()
+                .get("meta")
+                .getAsJsonObject()
+                .get("id")
+                .getAsString();
     }
 }
